@@ -1,7 +1,7 @@
 ---
 title: "Statistical assignment 4"
-author: "[add your name here]"
-date: "[add date here]"
+author: "Asli Hasanli"
+date: "29/02/2020"
 output: github_document
 ---
 
@@ -22,10 +22,10 @@ First we will need to open and recode the data. I supply the code for this; you 
 
     ```{r}
 library(tidyverse)
-Data8 <- read_tsv("...h_indresp.tab")
+Data8 <- read_tsv("/Users/asli/Desktop/data/tab/ukhls_w8/h_indresp.tab")
 Data8 <- Data8 %>%
         select(pidp, h_age_dv, h_payn_dv, h_gor_dv)
-Stable <- read_tsv("...xwavedat.tab")
+Stable <- read_tsv("/Users/asli/Desktop/data/tab/ukhls_wx/xwavedat.tab")
 Stable <- Stable %>%
         select(pidp, sex_dv, ukborn, plbornc)
 Data <- Data8 %>% left_join(Stable, "pidp")
@@ -66,26 +66,100 @@ Reproduce the following graphs as close as you can. For each graph, write two se
 
 1. Univariate distribution (20 points).
 
-    ```{r}
+The greatest number of respondents had net montly pay of between 1000 and 1500. After 1500, the number declines as there aren't as many people earning above this. 
+
+```{r echo=TRUE}
+
+ggplot(Data, aes(x = h_payn_dv)) +
+        geom_freqpoly(size = 0.25) + 
+        ylab("Number of respondents") + 
+        xlab("Net monthly pay")
+
     ```
 
 2. Line chart (20 points). The lines show the non-parametric association between age and monthly earnings for men and women.
 
-    ```{r}
+This shows that men earn more monthly at all ages than women, with the highest difference at middle ages (35-50) starting from about 25. Men's income increases faster during the middle ages than women's, and both decline after 50's.
+
+```{r echo=TRUE}
+    
+ggplot(data = Data) + 
+    geom_smooth(mapping = aes(x=h_age_dv,    y=h_payn_dv, linetype = sex_dv), color="black", size = 0.75)+
+  labs(x="Age", y="Monthly earnings", linetype="Sex")+
+          xlim(15,65)
+    
     ```
 
 3. Faceted bar chart (20 points).
 
-    ```{r}
+Males from all backgrounds earn more than females in the same backgrounds. The difference is highest in  Irish and lowest in Bangladesh born respondents.
+
+```{r echo=TRUE}
+
+Bar <- Data %>%
+        filter(!is.na(placeBorn)) %>%
+        filter(!is.na(sex_dv)) %>%
+        group_by(placeBorn, sex_dv) %>%
+        summarise(
+medianearning = median(h_payn_dv, na.rm = TRUE)
+  )  
+    
+Bar %>%
+ggplot(aes(x = sex_dv, y = medianearning)) +
+geom_bar(stat="identity") +
+xlab("Sex") +
+ylab("Median monthly net pay") +
+facet_wrap(~ placeBorn)
+    
+# pay and sex by region
     ```
 
 4. Heat map (20 points).
 
-    ```{r}
-    
+This shows the average age of people in regions of the UK grouped by their place of birth. The youngest people in this study are Nigerian born residents in Scotland, and the oldest are Jamaican born residents in Scotland. 
+
+```{r echo=TRUE}
+Heat <- Data %>%
+        filter(!is.na(h_gor_dv)) %>%
+        filter(!is.na(placeBorn)) %>%
+        group_by(placeBorn, h_gor_dv) %>%
+        summarise(meanage = mean(h_age_dv, na.rm = TRUE))  
+
+
+Heat %>%
+ggplot(aes(x = h_gor_dv, y = placeBorn)) + 
+geom_tile(aes(fill = meanage)) + 
+xlab("Region") +
+ylab("Country of birth") +
+labs(fill="Mean age") + 
+theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+
     ```
 
 5. Population pyramid (20 points).
 
-    ```{r}
+This shows the number of men and women at every age. At most age groups, especially after 50s, there are more women than men and that most people are aged around 40-70.
+
+```{r echo=TRUE}
+
+Pyramid <- Data %>%
+        select("sex_dv", "h_age_dv") %>%
+        filter(!is.na(h_age_dv)) %>%
+        filter(!is.na(sex_dv)) 
+    
+
+Pyramid %>%    
+ggplot(aes(x = h_age_dv, fill = sex_dv)) + 
+  geom_bar(data = subset (Pyramid, sex_dv == "female")) +
+    geom_bar(data = subset (Pyramid, sex_dv == "male"), aes(y=..count..*(-1))) +
+    labs(fill="Sex", y="n", x="Age")+
+    scale_colour_manual(values = c("red3", "steelblue"),
+                        aesthetics = c("colour", "fill")) +
+    scale_y_continuous (labels = abs) +
+  coord_flip()
+    
+    
+    
     ```
